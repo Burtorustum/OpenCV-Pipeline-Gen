@@ -4,11 +4,14 @@ import streamlit as st
 # TODO: maybe java pipelines should use a builder template and the library can have a builder class w all the methods built in
 
 def generate_java(pipeline, selected_stages):
-    import_code = ("\n"
+    import_code = ("import java.util.ArrayList;\n"
+                   "import java.util.List;\n"
                    "import org.opencv.core.Core;\n"
                    "import org.opencv.core.Mat;\n"
+                   "import org.opencv.core.MatOfPoint;\n"
                    "import org.opencv.core.Point;\n"
                    "import org.opencv.core.Rect;\n"
+                   "import org.opencv.core.Scalar;\n"
                    "import org.opencv.core.Size;\n"
                    "import org.opencv.imgproc.Imgproc;\n"
                    "import org.openftc.easyopencv.OpenCvPipeline;\n"
@@ -29,9 +32,9 @@ def generate_java(pipeline, selected_stages):
     last_output = "input"
 
     if "Crop" in selected_stages:
-        methods.append(gen_crop("input"))
+        methods.append(gen_crop())
         process_frame_code += f"        applyCrop({last_output});\n"
-        class_code += "    public final Mat cropOut = new Mat();\n"
+        class_code += "    public Mat cropOut = new Mat();\n"
         last_output = "cropOut"
 
     for stage in pipeline:
@@ -39,7 +42,7 @@ def generate_java(pipeline, selected_stages):
             case "Blur":
                 methods.append(gen_blur())
                 process_frame_code += f"        applyBlur({last_output});\n"
-                class_code += "    public final Mat blueOur = new Mat();\n"
+                class_code += "    public final Mat blurOut = new Mat();\n"
                 last_output = "blurOut"
 
             case "Erode":
@@ -65,7 +68,7 @@ def generate_java(pipeline, selected_stages):
                 methods.append(gen_contours())
                 process_frame_code += f"        findContours({last_output});\n"
                 class_code += ("    public final List<MatOfPoint> contours = new ArrayList<>();\n"
-                               "    public final Mat contourOut = new Mat();\n")
+                               "    public final Mat contourHierarchy = new Mat();\n")
 
     process_frame_code += ("\n        return cameraIn;\n"
                            "    }\n")
@@ -100,11 +103,11 @@ def gen_blur():
 def match_shape_string(shape):
     match shape:
         case "RECT":
-            return "Core.MORPH_RECT"
+            return "Imgproc.MORPH_RECT"
         case "ELLIPSE":
-            return "Core.MORPH_ELLIPSE"
+            return "Imgproc.MORPH_ELLIPSE"
         case "CROSS":
-            return "Core.MORPH_CROSS"
+            return "Imgproc.MORPH_CROSS"
         case _:
             return None
 
@@ -155,7 +158,8 @@ def gen_threshold():
         double[] val = {str(st.session_state["val"]).replace("(", "{").replace(")", "}")};
         
         // EasyOpenCV delivers RGBA frames, not BGR like normal OpenCV
-        Imgproc.cvtColor(input, Imgproc.COLOR_RGBA2HSV, cvtColorOut);
+        Imgproc.cvtColor(input, cvtColorOut, Imgproc.COLOR_RGBA2RGB);
+        Imgproc.cvtColor(cvtColorOut, cvtColorOut, Imgproc.COLOR_RGB2HSV);
         Core.inRange(
             cvtColorOut, 
             new Scalar(hue[0], sat[0], val[0]),
@@ -182,6 +186,6 @@ def match_approx_method_string(approx_method):
 def gen_contours():
     return f"""
     private void findContours(Mat input) {{
-        Imgproc.findContours(input, contours, Imgproc.RETR_EXTERNAL, {match_approx_method_string(st.session_state["contour_approx_method"])});
+        Imgproc.findContours(input, contours, contourHierarchy, Imgproc.RETR_EXTERNAL, {match_approx_method_string(st.session_state["contour_approx_method"])});
         Imgproc.drawContours(cameraIn, contours, -1, new Scalar(0,255,0), 3);
     }}\n"""
