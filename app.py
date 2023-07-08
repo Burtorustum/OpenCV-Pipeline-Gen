@@ -1,5 +1,4 @@
 import numpy as np
-import cv2 as cv
 import streamlit as st
 from PIL import Image
 from streamlit_cropper import st_cropper
@@ -10,7 +9,6 @@ from cv_functions import *
 
 
 def main_loop():
-
     st.set_page_config(layout="wide")
 
     st.title("OpenCV Pipeline Generator")
@@ -116,7 +114,7 @@ def main_loop():
 
             case "Contours":
                 st.sidebar.subheader("Contours")
-                st.sidebar.selectbox("Approximation Method", ("CHAIN NONE", "CHAIN SIMPLE", "CHAIN TC89 L1", "CHAIN TC89 KCOS"), key="contour_approx_method")
+                st.sidebar.selectbox("Approximation Method", ("CHAIN SIMPLE", "CHAIN NONE", "CHAIN TC89 L1", "CHAIN TC89 KCOS"), key="contour_approx_method")
 
                 approx_method = match_approx_method(st.session_state["contour_approx_method"])
                 if approx_method is None:
