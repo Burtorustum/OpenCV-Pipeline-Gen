@@ -1,11 +1,14 @@
 import numpy as np
-import streamlit as st
 from PIL import Image
 from streamlit_cropper import st_cropper
 from streamlit_sortables import sort_items
 from streamlit_toggle import st_toggle_switch
 
 from cv_functions import *
+from generate_code import *
+
+
+# from generate_code import *
 
 
 def main_loop():
@@ -23,7 +26,8 @@ def main_loop():
             ["Threshold", "Erode", "Dilate", "Contours"]
         )
         pipeline = sort_items([x for x in selected_stages if not x == "Crop"], header="Pipeline order")
-        if "Contours" in pipeline and ("Threshold" not in pipeline or pipeline.index("Contours") < pipeline.index("Threshold")):
+        if "Contours" in pipeline and (
+                "Threshold" not in pipeline or pipeline.index("Contours") < pipeline.index("Threshold")):
             st.error("Contours stage must come AFTER Threshold stage")
             return None
 
@@ -50,7 +54,14 @@ def main_loop():
         st.sidebar.color_picker("Crop box color", value="#FF0000", key="crop_color")
         st.subheader("Crop")
         st.text("Crop result shown as \"Input\" below")
-        source_image = st_cropper(source_image, realtime_update=True, box_color=st.session_state["crop_color"], aspect_ratio=None)
+
+        rect = st_cropper(source_image, realtime_update=True, box_color=st.session_state["crop_color"],
+                          aspect_ratio=None, return_type="box")
+        st.session_state["crop_rect"] = rect
+
+        raw_image = np.asarray(source_image).astype('uint8')
+        left, top, width, height = tuple(map(int, rect.values()))
+        source_image = raw_image[top:top + height, left:left + width]
 
     source_image = np.array(source_image)
     input_image = np.copy(source_image)
@@ -61,8 +72,10 @@ def main_loop():
         match stage:
             case "Blur":
                 st.sidebar.subheader("Blur")
-                st.sidebar.slider("Blur", min_value=0.0, max_value=20.0, key="blur_amt")
-                input_image = gaussian_blur(input_image, st.session_state["blur_amt"])
+                st.sidebar.slider("Width", min_value=1, max_value=100, key="blur_width")
+                st.sidebar.slider("Height", min_value=1, max_value=100, key="blur_height")
+
+                input_image = blur(input_image, st.session_state["blur_width"], st.session_state["blur_height"])
                 display_images.append(np.copy(input_image))
                 captions.append("Blur")
 
@@ -92,7 +105,8 @@ def main_loop():
                     st.error("Invalid selection. Someone messed up this list")
                     return None
 
-                input_image = dilate(input_image, st.session_state["dilate_size"], st.session_state["dilate_iter"], shape)
+                input_image = dilate(input_image, st.session_state["dilate_size"], st.session_state["dilate_iter"],
+                                     shape)
                 display_images.append(np.copy(input_image))
                 captions.append("Dilate")
 
@@ -114,7 +128,9 @@ def main_loop():
 
             case "Contours":
                 st.sidebar.subheader("Contours")
-                st.sidebar.selectbox("Approximation Method", ("CHAIN SIMPLE", "CHAIN NONE", "CHAIN TC89 L1", "CHAIN TC89 KCOS"), key="contour_approx_method")
+                st.sidebar.selectbox("Approximation Method",
+                                     ("CHAIN SIMPLE", "CHAIN NONE", "CHAIN TC89 L1", "CHAIN TC89 KCOS"),
+                                     key="contour_approx_method")
 
                 approx_method = match_approx_method(st.session_state["contour_approx_method"])
                 if approx_method is None:
@@ -122,7 +138,7 @@ def main_loop():
                     return None
 
                 contours, hierarchy = contour(input_image, approx_method)
-                display_images.append(cv.drawContours(source_image, contours, -1, (0,255,0), 3))
+                display_images.append(cv.drawContours(source_image, contours, -1, (0, 255, 0), 3))
                 captions.append("Contours")
 
     st.write("---")
@@ -132,6 +148,11 @@ def main_loop():
         col.subheader(captions[i])
         col.image(display_images[i])
         i += 1
+
+    st.write("---")
+    st.header("Generated Java Code")
+    generate_java(pipeline, selected_stages)
+
 
 if __name__ == '__main__':
     main_loop()
