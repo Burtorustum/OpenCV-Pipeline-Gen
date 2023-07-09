@@ -23,7 +23,7 @@ def main_loop():
         selected_stages = st.sidebar.multiselect(
             "Pipeline stages",
             ["Crop", "Blur", "Erode", "Dilate", "Threshold", "Contours"],
-            ["Threshold", "Erode", "Dilate", "Contours"]
+            ["Crop", "Blur", "Threshold", "Erode", "Dilate", "Contours"]
         )
         pipeline = sort_items([x for x in selected_stages if not x == "Crop"], header="Pipeline order")
         if "Contours" in pipeline and (
@@ -72,8 +72,8 @@ def main_loop():
         match stage:
             case "Blur":
                 st.sidebar.subheader("Blur")
-                st.sidebar.slider("Width", min_value=1, max_value=100, key="blur_width")
-                st.sidebar.slider("Height", min_value=1, max_value=100, key="blur_height")
+                st.sidebar.slider("Width", min_value=1, max_value=100, key="blur_width", value=15)
+                st.sidebar.slider("Height", min_value=1, max_value=100, key="blur_height", value=15)
 
                 input_image = blur(input_image, st.session_state["blur_width"], st.session_state["blur_height"])
                 display_images.append(np.copy(input_image))
@@ -98,7 +98,7 @@ def main_loop():
                 st.sidebar.subheader("Dilate")
                 st.sidebar.selectbox("Shape", ["RECT", "ELLIPSE", "CROSS"], key="dilate_shape")
                 st.sidebar.slider("Size", min_value=0, max_value=12, key="dilate_size", value=1)
-                st.sidebar.slider("Iterations", min_value=1, max_value=25, key="dilate_iter", value=6)
+                st.sidebar.slider("Iterations", min_value=1, max_value=25, key="dilate_iter", value=5)
 
                 shape = match_shape(st.session_state["dilate_shape"])
                 if shape is None:
@@ -115,6 +115,7 @@ def main_loop():
                 st.sidebar.slider("Hue", 0, 180, (61, 126), key="hue")
                 st.sidebar.slider("Saturation", 0, 255, (110, 255), key="sat")
                 st.sidebar.slider("Value", 0, 255, (0, 255), key="val")
+                st.sidebar.checkbox("Invert Output?", key="thresh_invert")
 
                 hue = st.session_state["hue"]
                 sat = st.session_state["sat"]
@@ -122,7 +123,7 @@ def main_loop():
 
                 lower_bound = (hue[0], sat[0], val[0])
                 upper_bound = (hue[1], sat[1], val[1])
-                input_image = hsv_threshold(input_image, lower_bound, upper_bound)
+                input_image = hsv_threshold(input_image, lower_bound, upper_bound, st.session_state["thresh_invert"])
                 display_images.append(np.copy(input_image))
                 captions.append("HSV Threshold")
 

@@ -1,4 +1,5 @@
 import cv2 as cv
+import numpy as np
 
 
 def blur(img, width, height):
@@ -28,10 +29,14 @@ def dilate(img, size, iterations, shape):
     return cv.dilate(img, element, iterations=iterations)  # TODO: add bordertype dropdown
 
 
-def hsv_threshold(img, lower_bound, upper_bound):
+def hsv_threshold(img, lower_bound, upper_bound, invert):
     # remember cv2 uses BGR but easyopencv uses rgb!
     hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    return cv.inRange(hsv, lower_bound, upper_bound)
+    thresh = cv.inRange(hsv, lower_bound, upper_bound)
+    if invert:
+        thresh = np.array(thresh)
+        return np.bitwise_not(thresh)
+    return thresh
 
 
 def match_approx_method(approx_method):

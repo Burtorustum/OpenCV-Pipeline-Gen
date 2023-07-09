@@ -156,6 +156,7 @@ def gen_threshold():
         double[] hue = {str(st.session_state["hue"]).replace("(", "{").replace(")", "}")};
         double[] sat = {str(st.session_state["sat"]).replace("(", "{").replace(")", "}")};
         double[] val = {str(st.session_state["val"]).replace("(", "{").replace(")", "}")};
+        boolean invert = {st.session_state["thresh_invert"]};
         
         // EasyOpenCV delivers RGBA frames, not BGR like normal OpenCV
         Imgproc.cvtColor(input, cvtColorOut, Imgproc.COLOR_RGBA2RGB);
@@ -166,6 +167,9 @@ def gen_threshold():
             new Scalar(hue[1], sat[1], val[1]),
             thresholdOut
         );
+        if (invert) {{ 
+            Core.bitwise_not(thresholdOut, thresholdOut);
+        }}
     }}\n"""
 
 
