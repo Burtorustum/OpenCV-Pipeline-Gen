@@ -150,9 +150,9 @@ def main_loop():
         col.image(display_images[i])
         i += 1
 
-    st.write("---")
-    st.header("Generated Java Code")
-    generate_java(pipeline, selected_stages)
+    #st.write("---")
+    #st.header("Generated Java Code")
+    #generate_java(pipeline, selected_stages)
 
 
 if __name__ == '__main__':
